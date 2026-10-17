@@ -56,25 +56,27 @@ def scan(text):
     return hits
 
 
+def format_hits(hits):
+    if not hits:
+        return "✅ 关键词初筛未命中（仍需做语境识别和 12 范围检查）"
+    order = {"🔴": 0, "🟠": 1, "🟡": 2, "⚪": 3}
+    hits = sorted(hits, key=lambda h: (order[h[1]], h[0]))
+    out = [f"命中 {len(hits)} 处：", "", "| 行 | 等级 | 类别 | 命中 | 建议 | 原句 |", "|---|---|---|---|---|---|"]
+    for lineno, level, cat, word, tip, line in hits:
+        snippet = line if len(line) <= 40 else line[:40] + "…"
+        out.append(f"| {lineno} | {level} | {cat} | {word} | {tip} | {snippet} |")
+    out.append("")
+    out.append("注：初筛有误报/漏报，最终结论需结合场景（短视频/直播/挂车/投流）和上下文判断。")
+    return "\n".join(out)
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)
     src = sys.argv[1]
     text = sys.stdin.read() if src == "-" else open(src, encoding="utf-8").read()
-    hits = scan(text)
-    if not hits:
-        print("✅ 关键词初筛未命中（仍需做语境识别和 12 范围检查）")
-        return
-    order = {"🔴": 0, "🟠": 1, "🟡": 2, "⚪": 3}
-    hits.sort(key=lambda h: (order[h[1]], h[0]))
-    print(f"命中 {len(hits)} 处：\n")
-    print("| 行 | 等级 | 类别 | 命中 | 建议 | 原句 |")
-    print("|---|---|---|---|---|---|")
-    for lineno, level, cat, word, tip, line in hits:
-        snippet = line if len(line) <= 40 else line[:40] + "…"
-        print(f"| {lineno} | {level} | {cat} | {word} | {tip} | {snippet} |")
-    print("\n注：初筛有误报/漏报，最终结论需结合场景（短视频/直播/挂车/投流）和上下文判断。")
+    print(format_hits(scan(text)))
 
 
 if __name__ == "__main__":

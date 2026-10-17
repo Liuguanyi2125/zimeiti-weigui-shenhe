@@ -1,0 +1,188 @@
+#!/usr/bin/env python3
+"""weigui —— 自媒体违规审核命令行工具（抖音 / 视频号）。
+
+子命令:
+  scan     关键词初筛（离线，不需要任何 AI）
+  review   完整审核：拼好提示词交给本机 AI Agent（claude / codex / gemini / 自定义命令）
+  appeal   生成违规申诉文案
+  system   输出完整系统提示词（粘贴到 ChatGPT、豆包、Coze、Dify 等任意平台）
+  path     输出 skill 所在目录
+
+示例:
+  weigui scan 文案.txt
+  weigui review 文案.txt --scene 直播 --platform 视频号
+  echo "学完我的课月入10万" | weigui review - --agent claude
+  weigui review 文案.txt --print-prompt | 任意AI命令
+  weigui appeal --platform 视频号 --violation "直播引导私下交易，禁播1天" --actions "删除了简介里的微信号"
+  weigui system > 违规审核系统提示词.md
+"""
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+REF = os.path.join(ROOT, "references")
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+from scan import scan, format_hits  # noqa: E402
+
+SCENES = ["短视频", "直播", "挂车", "投流"]
+PLATFORMS = ["抖音", "视频号", "全部"]
+
+# 各 Agent CLI 的非交互调用方式：提示词统一走 stdin
+AGENTS = {
+    "claude": ["claude", "-p"],
+    "codex": ["codex", "exec", "-"],
+    "gemini": ["gemini"],
+}
+
+
+def read(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+def skill_body():
+    text = read(os.path.join(ROOT, "SKILL.md"))
+    if text.startswith("---"):
+        text = text.split("---", 2)[2]
+    return text.strip()
+
+
+def system_prompt(include_appeal=True):
+    parts = [
+        "你是抖音 / 视频号内容合规审核专家。严格按下面的工作说明和参考资料工作。"
+        "参考资料已全部附在下方，不需要再读取任何文件。",
+        "# 工作说明\n\n" + skill_body(),
+        "# 参考资料：rules.md\n\n" + read(os.path.join(REF, "rules.md")),
+        "# 参考资料：lexicon.md\n\n" + read(os.path.join(REF, "lexicon.md")),
+    ]
+    if include_appeal:
+        parts.append("# 参考资料：appeal.md\n\n" + read(os.path.join(REF, "appeal.md")))
+    return "\n\n---\n\n".join(parts)
+
+
+def read_input(src, text):
+    if text:
+        return text
+    if src in (None, "-"):
+        if sys.stdin.isatty():
+            sys.exit("请提供文件路径、--text，或通过管道输入文本")
+        return sys.stdin.read()
+    return read(src)
+
+
+def run_agent(agent, prompt):
+    if agent == "auto":
+        for name in AGENTS:
+            if shutil.which(AGENTS[name][0]):
+                agent = name
+                break
+        else:
+            sys.exit("没找到可用的 Agent CLI（claude / codex / gemini）。\n"
+                     "可用 --agent '<命令>' 指定任意从 stdin 读提示词的命令，"
+                     "或用 --print-prompt 输出提示词自行粘贴。")
+    cmd = AGENTS.get(agent) or agent
+    shell = isinstance(cmd, str)
+    print(f"→ 调用 {agent} 审核中…\n", file=sys.stderr)
+    proc = subprocess.run(cmd, input=prompt, text=True, shell=shell)
+    sys.exit(proc.returncode)
+
+
+def cmd_scan(args):
+    print(format_hits(scan(read_input(args.file, args.text))))
+
+
+def cmd_review(args):
+    content = read_input(args.file, args.text)
+    hits = format_hits(scan(content))
+    task = (
+        "# 本次任务：违规审核\n\n"
+        f"- 平台：{args.platform}\n"
+        f"- 身份层次：{args.scene}\n"
+        f"- 内容载体：{args.carrier or '未说明，请按内容判断'}\n\n"
+        "请按「工作说明」里的审核流程和输出格式，完整输出：审核结论、逐条命中表、"
+        "语境/组合风险、非话术项提醒、改写后全文。直接输出结果，不要提问。\n\n"
+        "## 关键词初筛结果（脚本自动生成，可能有误报漏报，仅供参考）\n\n"
+        f"{hits}\n\n"
+        "## 待审核内容\n\n"
+        f"<content>\n{content}\n</content>\n"
+    )
+    prompt = system_prompt(include_appeal=False) + "\n\n---\n\n" + task
+    if args.print_prompt:
+        print(prompt)
+    else:
+        run_agent(args.agent, prompt)
+
+
+def cmd_appeal(args):
+    task = (
+        "# 本次任务：撰写违规申诉\n\n"
+        f"- 平台：{args.platform}\n"
+        f"- 账号名：{args.account or '【账号名】'}\n"
+        f"- 违规日期：{args.date or '【日期】'}\n"
+        f"- 违规情况 / 处罚：{args.violation}\n"
+        f"- 已做的整改：{args.actions or '未提供（请列出建议整改清单，并在文案中留【】占位）'}\n\n"
+        "请按 appeal.md：先给出必须先完成的自查与材料清单，然后给出可直接提交的申诉文案"
+        "（认错致歉 → 具体整改 → 承诺 → 请求解除），最后提醒注意事项。直接输出结果，不要提问。\n"
+    )
+    prompt = system_prompt(include_appeal=True) + "\n\n---\n\n" + task
+    if args.print_prompt:
+        print(prompt)
+    else:
+        run_agent(args.agent, prompt)
+
+
+def cmd_system(args):
+    print(system_prompt(include_appeal=True))
+
+
+def cmd_path(args):
+    print(ROOT)
+
+
+def main():
+    p = argparse.ArgumentParser(prog="weigui", description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    def add_input(sp):
+        sp.add_argument("file", nargs="?", help="文本文件路径，- 表示从标准输入读取")
+        sp.add_argument("-t", "--text", help="直接传入文本")
+
+    def add_agent(sp):
+        sp.add_argument("-a", "--agent", default="auto",
+                        help="auto（默认，依次找 claude/codex/gemini）、claude、codex、gemini，"
+                             "或任意从 stdin 读提示词的命令，如 'ollama run qwen3'")
+        sp.add_argument("--print-prompt", action="store_true", help="只输出拼好的提示词，不调用 Agent")
+        sp.add_argument("-p", "--platform", default="全部", choices=PLATFORMS)
+
+    sp = sub.add_parser("scan", help="关键词初筛（离线）")
+    add_input(sp)
+    sp.set_defaults(func=cmd_scan)
+
+    sp = sub.add_parser("review", help="完整审核（调用 AI Agent）")
+    add_input(sp)
+    add_agent(sp)
+    sp.add_argument("-s", "--scene", default="直播", choices=SCENES, help="身份层次，默认按直播从严")
+    sp.add_argument("-c", "--carrier", help="内容载体：口播/标题/简介/评论区/私信/商详页…")
+    sp.set_defaults(func=cmd_review)
+
+    sp = sub.add_parser("appeal", help="生成申诉文案（调用 AI Agent）")
+    add_agent(sp)
+    sp.add_argument("-v", "--violation", required=True, help="违规通知内容与处罚")
+    sp.add_argument("--actions", help="已完成的整改")
+    sp.add_argument("--account", help="账号名")
+    sp.add_argument("--date", help="违规日期")
+    sp.set_defaults(func=cmd_appeal)
+
+    sub.add_parser("system", help="输出完整系统提示词").set_defaults(func=cmd_system)
+    sub.add_parser("path", help="输出 skill 目录").set_defaults(func=cmd_path)
+
+    args = p.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
