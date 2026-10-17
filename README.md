@@ -4,37 +4,35 @@
 
 **适用于所有 AI Agent**：Claude Code、Codex、Cursor、Gemini CLI、OpenCode 等编程 Agent，ChatGPT、豆包、Kimi、Coze、Dify 等聊天平台，也可以**在终端里直接调用**。
 
-## 一行安装
+## 用法：两步
 
-**装进 AI Agent**（交互式选择要装到哪些 Agent）：
-
-```bash
-npx skills add Liuguanyi2125/zimeiti-weigui-shenhe
-```
-
-全局安装到本机检测到的所有 Agent、跳过确认：
+**第 1 步：安装**（一行命令，把 skill 装进你电脑上的 AI 工具）
 
 ```bash
-npx skills add Liuguanyi2125/zimeiti-weigui-shenhe -g -y
+npx zimeiti-weigui-shenhe
 ```
 
-skill 安装后的名字是 `zimeiti-weigui-shenhe`。
+会装到 `~/.agents/skills`（Codex、Cursor、Gemini CLI、OpenCode 等通用目录），以及已安装的 Claude Code（`~/.claude/skills`）、Codex（`~/.codex/skills`）。再次运行就是更新，`npx zimeiti-weigui-shenhe uninstall` 卸载。只需要 Node.js 18+。
 
-装完在 Agent 里直接说「帮我审核这段直播话术」「这句话会不会违规」即可。
+**第 2 步：在 AI 里直接提问**
 
-**终端直接用**（不用安装）：
+打开 Claude Code、Codex 等 AI 工具（比如在终端输入 `claude`），把要检查的文字发给它：
 
-```bash
-npx zimeiti-weigui-shenhe scan -t "学完月入10万，加V私信我"
+```
+帮我审核这段直播话术：零基础跟我学，包学包会，学完月入5万！想要资料的扣1，我私信发你
 ```
 
-**装成全局命令 `weigui`**：
-
-```bash
-npm i -g zimeiti-weigui-shenhe
+```
+这条视频号文案会不会违规？挂车带货用的：……
 ```
 
-只需要 Node.js 18+，没有任何第三方依赖。
+```
+账号被禁播1天，原因是引导私下交易，帮我写申诉
+```
+
+AI 会自动调用这个 skill，输出风险等级、命中原因、合规改写和改写后全文。已经打开的 AI 会话需要重开一次才能识别新装的 skill。
+
+> 也可以用通用的 skills 安装器：`npx skills add Liuguanyi2125/zimeiti-weigui-shenhe`
 
 ## 能力
 
@@ -49,13 +47,13 @@ npm i -g zimeiti-weigui-shenhe
 
 | 环境 | 用法 |
 |---|---|
-| Claude Code、Codex、Cursor、Gemini CLI、OpenCode 等支持 Skills 的 Agent | `npx skills add Liuguanyi2125/zimeiti-weigui-shenhe` |
+| Claude Code、Codex、Cursor、Gemini CLI、OpenCode 等支持 Skills 的 Agent | `npx zimeiti-weigui-shenhe` 安装后直接提问 |
 | 读取 `AGENTS.md` 的 Agent | 在本仓库目录里打开，或把 `AGENTS.md` 的内容加进你项目的规则文件 |
-| ChatGPT、豆包、Kimi、Coze、Dify、GPTs 等聊天或搭建平台 | 运行 `weigui system \| pbcopy`，把完整系统提示词粘贴到「系统提示词 / 角色设定 / 知识库」里 |
+| ChatGPT、豆包、Kimi、Coze、Dify、GPTs 等聊天或搭建平台 | 运行 `npx zimeiti-weigui-shenhe system \| pbcopy`，把完整系统提示词粘贴到「系统提示词 / 角色设定 / 知识库」里 |
 
-## 终端命令
+## 进阶：不进 AI 会话，直接在终端里用
 
-以下用 `weigui` 表示。没有全局安装时，把它换成 `npx zimeiti-weigui-shenhe`。
+以下用 `weigui` 表示，可用 `npm i -g zimeiti-weigui-shenhe` 装成全局命令；不装的话，把它换成 `npx zimeiti-weigui-shenhe`。
 
 ```bash
 # 关键词初筛：离线，不需要任何 AI
@@ -80,8 +78,9 @@ weigui appeal --platform 视频号 --violation "直播引导私下交易，禁�
 # 输出完整系统提示词，用于粘贴到聊天平台
 weigui system > 系统提示词.md
 
-# 把 skill 装进各 AI Agent（等同 npx skills add）
+# 安装 / 卸载 skill
 weigui install
+weigui uninstall
 ```
 
 参数说明：

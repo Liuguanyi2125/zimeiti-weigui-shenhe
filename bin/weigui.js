@@ -9,7 +9,6 @@ const { parseArgs } = require('node:util');
 
 const ROOT = path.resolve(__dirname, '..');
 const REF = path.join(ROOT, 'references');
-const REPO = 'Liuguanyi2125/zimeiti-weigui-shenhe';
 const SCENES = ['短视频', '直播', '挂车', '投流'];
 const PLATFORMS = ['抖音', '视频号', '全部'];
 
@@ -20,21 +19,30 @@ const AGENTS = {
   gemini: ['gemini', []],
 };
 
-const HELP = `weigui —— 自媒体违规审核（抖音 / 视频号）
+const HELP = `自媒体违规审核（抖音 / 视频号）
 
-用法:
-  weigui scan    [文件|-] [-t 文本]                  关键词初筛（离线，不需要 AI）
-  weigui review  [文件|-] [-t 文本] [选项]           完整审核，交给本机 AI Agent
-  weigui appeal  -v "违规情况" [选项]                 生成申诉文案
-  weigui system                                       输出完整系统提示词（粘贴到任意 AI 平台）
-  weigui install [skills 参数]                        把 skill 安装到各 AI Agent（npx skills add）
-  weigui path                                         输出 skill 所在目录
+安装（一行命令，把 skill 装进你电脑上的 AI 工具）:
+  npx zimeiti-weigui-shenhe
+
+装好后打开 Claude Code、Codex 等 AI 工具，直接说：
+  帮我审核这段直播话术：……
+  这句话在视频号会不会违规：……
+  账号被禁播了，帮我写申诉：……
+
+其他命令:
+  install                  安装 / 更新 skill（不带参数运行时的默认动作）
+  uninstall                从各 AI 工具中移除 skill
+  scan    [文件|-] [-t 文本]           关键词初筛（离线，不需要 AI）
+  review  [文件|-] [-t 文本] [选项]    在终端里一次性审核，交给本机 AI 工具
+  appeal  -v "违规情况" [选项]          一次性生成申诉文案
+  system                   输出完整系统提示词（粘贴到 ChatGPT、豆包、Coze 等平台）
+  path                     输出 skill 文件所在目录
 
 review / appeal 选项:
   -a, --agent <名称|命令>   auto（默认，依次找 claude/codex/gemini）、claude、codex、gemini，
                             或任意从标准输入读提示词的命令，如 'ollama run qwen3'
   -p, --platform <平台>     抖音 | 视频号 | 全部（默认）
-      --print-prompt        只输出拼好的提示词，不调用 Agent
+      --print-prompt        只输出拼好的提示词，不调用 AI
 review 选项:
   -s, --scene <层次>        短视频 | 直播（默认）| 挂车 | 投流
   -c, --carrier <载体>      口播 / 标题 / 简介 / 评论区 / 私信 / 商详页 …
@@ -42,16 +50,28 @@ appeal 选项:
   -v, --violation <内容>    违规通知内容与处罚（必填）
       --actions <内容>      已完成的整改
       --account <账号名>    --date <日期>
-
-示例:
-  npx zimeiti-weigui-shenhe scan -t "学完月入10万，加V私信我"
-  weigui review 文案.txt --scene 直播 --platform 视频号
-  cat 口播稿.txt | weigui review - --agent 'ollama run qwen3'
-  weigui appeal -v "直播引导私下交易，禁播1天" --actions "删除了简介里的微信号"
 `;
 
 const read = (p) => fs.readFileSync(p, 'utf8');
 const die = (msg, code = 1) => { process.stderr.write(msg + '\n'); process.exit(code); };
+
+// ---------- 安装到各 AI 工具 ----------
+const os = require('node:os');
+const SKILL_NAME = 'zimeiti-weigui-shenhe';
+const SKILL_FILES = ['SKILL.md', 'references', 'scripts'];
+
+// ~/.agents/skills 是通用目录（Codex、Cursor、Gemini CLI、OpenCode、Amp 等都会读取）；
+// Claude Code 只读 ~/.claude/skills，装了才写入
+function skillDirs() {
+  const home = os.homedir();
+  const dirs = [path.join(home, '.agents', 'skills')];
+  for (const tool of ['.claude', '.codex']) {
+    if (fs.existsSync(path.join(home, tool))) dirs.push(path.join(home, tool, 'skills'));
+  }
+  return dirs;
+}
+const tilde = (p) => p.replace(os.homedir(), '~');
+const isLink = (p) => { try { return fs.lstatSync(p).isSymbolicLink(); } catch { return false; } };
 
 // ---------- 关键词初筛（规则与 scripts/scan.py 共用 scripts/rules.json） ----------
 const RULES = JSON.parse(read(path.join(ROOT, 'scripts', 'rules.json')));
@@ -208,10 +228,36 @@ const commands = {
     process.stdout.write(systemPrompt(true) + '\n');
   },
 
-  install(args) {
-    const res = spawnSync('npx', ['-y', 'skills', 'add', REPO, '-g', ...args],
-      { stdio: 'inherit', shell: process.platform === 'win32' });
-    process.exit(res.status ?? 1);
+  install() {
+    const dirs = skillDirs();
+    for (const dir of dirs) {
+      const target = path.join(dir, SKILL_NAME);
+      fs.mkdirSync(dir, { recursive: true });
+      fs.rmSync(target, { recursive: true, force: true });
+      for (const item of SKILL_FILES) {
+        fs.cpSync(path.join(ROOT, item), path.join(target, item), { recursive: true });
+      }
+      console.log(`✓ 已安装  ${tilde(target)}`);
+    }
+    console.log(`
+安装完成。现在打开你的 AI 工具（比如在终端里输入 claude 或 codex），直接说：
+
+  帮我审核这段直播话术：零基础跟我学，包学包会，学完月入5万！
+  这句话在视频号会不会违规：……
+  账号被禁播了，帮我写申诉：……
+
+AI 会自动调用「自媒体违规审核」skill，给出风险等级、命中原因和合规改写。
+已经打开的 AI 会话需要重开一次才能识别新装的 skill。`);
+  },
+
+  uninstall() {
+    for (const dir of skillDirs()) {
+      const target = path.join(dir, SKILL_NAME);
+      if (fs.existsSync(target) || isLink(target)) {
+        fs.rmSync(target, { recursive: true, force: true });
+        console.log(`✓ 已移除  ${tilde(target)}`);
+      }
+    }
   },
 
   path() {
@@ -220,7 +266,9 @@ const commands = {
 };
 
 const [cmd, ...rest] = process.argv.slice(2);
-if (!cmd || cmd === '-h' || cmd === '--help' || cmd === 'help') {
+if (!cmd) {
+  commands.install();
+} else if (cmd === '-h' || cmd === '--help' || cmd === 'help') {
   process.stdout.write(HELP);
 } else if (commands[cmd]) {
   commands[cmd](rest);

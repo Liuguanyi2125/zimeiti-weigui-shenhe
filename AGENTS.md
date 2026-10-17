@@ -8,4 +8,4 @@
 2. 每次审核读 `references/rules.md`；逐词排查和给替代说法读 `references/lexicon.md`；处理违规后与申诉读 `references/appeal.md`。
 3. 能执行命令时，先用 `python3 scripts/scan.py <文件>`（或 `echo "文本" | python3 scripts/scan.py -`）做关键词初筛，再做语境判断。
 
-终端用户也可以直接用 `weigui` 命令（`npx zimeiti-weigui-shenhe`，见 README）。
+安装：`npx zimeiti-weigui-shenhe`（把 skill 装进本机各 AI 工具）。终端里也可以直接用 `weigui` 命令，见 README。
