@@ -1,7 +1,7 @@
 {
   "name": "zimeiti-weigui-shenhe",
-  "version": "1.1.1",
-  "description": "抖音 / 视频号短视频、直播、带货内容违规审核与合规改写：适用于所有 AI Agent 的 skill + 终端命令 weigui",
+  "version": "1.2.0",
+  "description": "抖音、视频号、小红书、B站内容违规审核与合规改写（按平台判定、取最严）：适用于所有 AI Agent 的 skill + 终端命令 weigui",
   "bin": {
     "weigui": "bin/weigui.js"
   },
@@ -23,7 +23,10 @@
     "违规审核",
     "直播",
     "广告法",
-    "content-moderation"
+    "content-moderation",
+    "小红书",
+    "B站",
+    "bilibili"
   ],
   "repository": {
     "type": "git",

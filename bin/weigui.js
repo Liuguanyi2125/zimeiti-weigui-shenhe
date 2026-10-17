@@ -10,7 +10,7 @@ const { parseArgs } = require('node:util');
 const ROOT = path.resolve(__dirname, '..');
 const REF = path.join(ROOT, 'references');
 const SCENES = ['短视频', '直播', '挂车', '投流'];
-const PLATFORMS = ['抖音', '视频号', '全部'];
+const PLATFORMS = ['抖音', '视频号', '小红书', 'B站', '全部'];
 
 // 各 Agent CLI 的非交互调用方式：提示词统一走 stdin
 const AGENTS = {
@@ -19,7 +19,7 @@ const AGENTS = {
   gemini: ['gemini', []],
 };
 
-const HELP = `自媒体违规审核（抖音 / 视频号）
+const HELP = `自媒体违规审核（抖音 / 视频号 / 小红书 / B站）
 
 安装（一行命令，把 skill 装进你电脑上的 AI 工具）:
   npx zimeiti-weigui-shenhe
@@ -27,6 +27,7 @@ const HELP = `自媒体违规审核（抖音 / 视频号）
 装好后打开 Claude Code、Codex 等 AI 工具，直接说：
   帮我审核这段直播话术：……
   这句话在视频号会不会违规：……
+  这篇小红书笔记能发吗：……
   账号被禁播了，帮我写申诉：……
 
 其他命令:
@@ -41,7 +42,7 @@ const HELP = `自媒体违规审核（抖音 / 视频号）
 review / appeal 选项:
   -a, --agent <名称|命令>   auto（默认，依次找 claude/codex/gemini）、claude、codex、gemini，
                             或任意从标准输入读提示词的命令，如 'ollama run qwen3'
-  -p, --platform <平台>     抖音 | 视频号 | 全部（默认）
+  -p, --platform <平台>     抖音 | 视频号 | 小红书 | B站 | 全部（默认，四平台全审取最严）
       --print-prompt        只输出拼好的提示词，不调用 AI
 review 选项:
   -s, --scene <层次>        短视频 | 直播（默认）| 挂车 | 投流
@@ -110,9 +111,10 @@ function skillBody() {
 
 function systemPrompt(includeAppeal = true) {
   const parts = [
-    '你是抖音 / 视频号内容合规审核专家。严格按下面的工作说明和参考资料工作。参考资料已全部附在下方，不需要再读取任何文件。',
+    '你是抖音、视频号、小红书、B站内容合规审核专家。严格按下面的工作说明和参考资料工作。参考资料已全部附在下方，不需要再读取任何文件。',
     '# 工作说明\n\n' + skillBody(),
     '# 参考资料：rules.md\n\n' + read(path.join(REF, 'rules.md')),
+    '# 参考资料：platforms.md\n\n' + read(path.join(REF, 'platforms.md')),
     '# 参考资料：lexicon.md\n\n' + read(path.join(REF, 'lexicon.md')),
   ];
   if (includeAppeal) parts.push('# 参考资料：appeal.md\n\n' + read(path.join(REF, 'appeal.md')));
@@ -191,7 +193,7 @@ const commands = {
     const content = readInput(positionals[0], values.text);
     const task = [
       '# 本次任务：违规审核', '',
-      `- 平台：${values.platform}`,
+      `- 平台：${values.platform === '全部' ? '未指定，按抖音、视频号、小红书、B站四平台分别判定，每条取最严' : values.platform}`,
       `- 身份层次：${values.scene}`,
       `- 内容载体：${values.carrier || '未说明，请按内容判断'}`, '',
       '请按「工作说明」里的审核流程和输出格式，完整输出：审核结论、逐条命中表、语境/组合风险、非话术项提醒、改写后全文。直接输出结果，不要提问。', '',
