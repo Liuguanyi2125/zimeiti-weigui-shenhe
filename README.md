@@ -12,11 +12,13 @@
 npx skills add Liuguanyi2125/zimeiti-weigui-shenhe
 ```
 
-装到全部 Agent、全局生效、跳过确认：
+全局安装到本机检测到的所有 Agent、跳过确认：
 
 ```bash
-npx skills add Liuguanyi2125/zimeiti-weigui-shenhe -g -a '*' -y
+npx skills add Liuguanyi2125/zimeiti-weigui-shenhe -g -y
 ```
+
+skill 安装后的名字是 `zimeiti-weigui-shenhe`。
 
 装完在 Agent 里直接说「帮我审核这段直播话术」「这句话会不会违规」即可。
 
