@@ -1,0 +1,24 @@
+{
+  "name": "zimeiti-weigui-shenhe",
+  "version": "1.0.0",
+  "description": "抖音 / 视频号短视频、直播、带货内容违规审核与合规改写：适用于所有 AI Agent 的 skill + 终端命令 weigui",
+  "bin": {
+    "weigui": "bin/weigui.js"
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "references/",
+    "SKILL.md",
+    "AGENTS.md"
+  ],
+  "engines": {
+    "node": ">=18.3"
+  },
+  "keywords": ["skill", "agent-skills", "抖音", "视频号", "违规审核", "直播", "广告法", "content-moderation"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Liuguanyi2125/zimeiti-weigui-shenhe.git"
+  },
+  "license": "MIT"
+}
