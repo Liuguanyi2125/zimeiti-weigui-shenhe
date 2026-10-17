@@ -44,7 +44,7 @@ appeal 选项:
       --account <账号名>    --date <日期>
 
 示例:
-  npx github:Liuguanyi2125/zimeiti-weigui-shenhe scan -t "学完月入10万，加V私信我"
+  npx zimeiti-weigui-shenhe scan -t "学完月入10万，加V私信我"
   weigui review 文案.txt --scene 直播 --platform 视频号
   cat 口播稿.txt | weigui review - --agent 'ollama run qwen3'
   weigui appeal -v "直播引导私下交易，禁播1天" --actions "删除了简介里的微信号"

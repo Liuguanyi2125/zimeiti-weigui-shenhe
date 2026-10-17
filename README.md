@@ -25,13 +25,13 @@ skill 安装后的名字是 `zimeiti-weigui-shenhe`。
 **终端直接用**（不用安装）：
 
 ```bash
-npx github:Liuguanyi2125/zimeiti-weigui-shenhe scan -t "学完月入10万，加V私信我"
+npx zimeiti-weigui-shenhe scan -t "学完月入10万，加V私信我"
 ```
 
 **装成全局命令 `weigui`**：
 
 ```bash
-npm i -g github:Liuguanyi2125/zimeiti-weigui-shenhe
+npm i -g zimeiti-weigui-shenhe
 ```
 
 只需要 Node.js 18+，没有任何第三方依赖。
@@ -55,7 +55,7 @@ npm i -g github:Liuguanyi2125/zimeiti-weigui-shenhe
 
 ## 终端命令
 
-以下用 `weigui` 表示。没有全局安装时，把它换成 `npx github:Liuguanyi2125/zimeiti-weigui-shenhe`。
+以下用 `weigui` 表示。没有全局安装时，把它换成 `npx zimeiti-weigui-shenhe`。
 
 ```bash
 # 关键词初筛：离线，不需要任何 AI
