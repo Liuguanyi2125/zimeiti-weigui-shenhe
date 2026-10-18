@@ -1,6 +1,6 @@
 {
   "name": "zimeiti-weigui-shenhe",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "抖音、视频号、小红书、B站内容违规审核与合规改写（按平台判定、取最严）：适用于所有 AI Agent 的 skill + 终端命令 weigui",
   "bin": {
     "weigui": "bin/weigui.js"
@@ -32,5 +32,6 @@
     "type": "git",
     "url": "git+https://github.com/Liuguanyi2125/zimeiti-weigui-shenhe.git"
   },
+  "author": "一颗胆石蛊",
   "license": "MIT"
 }
